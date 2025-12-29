@@ -41,6 +41,15 @@ type SourcesTabProps = {
     updateFetchFrequency: (source: RSSSource, frequency: number) => void
     deleteSource: (source: RSSSource) => void
     deleteSources: (sources: RSSSource[]) => void
+    updateSourcesOpenTarget: (
+        sources: RSSSource[],
+        target: SourceOpenTarget
+    ) => void
+    updateSourcesFetchFrequency: (
+        sources: RSSSource[],
+        frequency: number
+    ) => void
+    toggleSourcesHidden: (sources: RSSSource[]) => void
     importOPML: () => void
     exportOPML: () => void
     toggleSourceHidden: (source: RSSSource) => void
@@ -51,6 +60,9 @@ type SourcesTabState = {
 } & {
     selectedSource: RSSSource
     selectedSources: RSSSource[]
+    batchOpenTarget?: SourceOpenTarget
+    batchFetchFrequency?: number
+    batchHidden?: boolean
 }
 
 const enum EditDropdownKeys {
@@ -77,12 +89,33 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                 let sources = count
                     ? (this.selection.getSelection() as RSSSource[])
                     : null
+
+                // 计算多选时的默认值
+                let batchOpenTarget: SourceOpenTarget | undefined = undefined
+                let batchFetchFrequency: number | undefined = undefined
+
+                if (count > 1) {
+                    // 检查所有选中订阅源的 openTarget 是否相同
+                    const firstOpenTarget = sources[0].openTarget
+                    if (sources.every(s => s.openTarget === firstOpenTarget)) {
+                        batchOpenTarget = firstOpenTarget
+                    }
+
+                    // 检查所有选中订阅源的 fetchFrequency 是否相同
+                    const firstFrequency = sources[0].fetchFrequency || 0
+                    if (sources.every(s => (s.fetchFrequency || 0) === firstFrequency)) {
+                        batchFetchFrequency = firstFrequency
+                    }
+                }
+
                 this.setState({
                     selectedSource: count === 1 ? sources[0] : null,
                     selectedSources: count > 1 ? sources : null,
                     newSourceName: count === 1 ? sources[0].name : "",
                     newSourceIcon: count === 1 ? sources[0].iconurl || "" : "",
                     sourceEditOption: EditDropdownKeys.Name,
+                    batchOpenTarget,
+                    batchFetchFrequency,
                 })
             },
         })
@@ -227,6 +260,24 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                 hidden: !this.state.selectedSource.hidden,
             } as RSSSource,
         })
+    }
+
+    onBatchOpenTargetChange = (_, option: IChoiceGroupOption) => {
+        let newTarget = parseInt(option.key) as SourceOpenTarget
+        this.setState({ batchOpenTarget: newTarget })
+        // 立即应用
+        this.props.updateSourcesOpenTarget(this.state.selectedSources, newTarget)
+    }
+
+    onBatchFetchFrequencyChange = (_, option: IDropdownOption) => {
+        let frequency = parseInt(option.key as string)
+        this.setState({ batchFetchFrequency: frequency })
+        // 立即应用
+        this.props.updateSourcesFetchFrequency(this.state.selectedSources, frequency)
+    }
+
+    toggleBatchHidden = () => {
+        this.props.toggleSourcesHidden(this.state.selectedSources)
     }
 
     render = () => (
@@ -459,6 +510,43 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                 0 ? (
                     <>
                         <Label>{intl.get("sources.selectedMulti")}</Label>
+
+                        <Label>{intl.get("sources.fetchFrequency")}</Label>
+                        <Dropdown
+                            options={this.fetchFrequencyOptions()}
+                            selectedKey={
+                                this.state.batchFetchFrequency !== undefined
+                                    ? String(this.state.batchFetchFrequency)
+                                    : undefined
+                            }
+                            onChange={this.onBatchFetchFrequencyChange}
+                            placeholder={intl.get("sources.selectFrequency")}
+                            style={{ width: 200 }}
+                        />
+
+                        <ChoiceGroup
+                            label={intl.get("sources.openTarget")}
+                            options={this.sourceOpenTargetChoices()}
+                            selectedKey={
+                                this.state.batchOpenTarget !== undefined
+                                    ? String(this.state.batchOpenTarget)
+                                    : undefined
+                            }
+                            onChange={this.onBatchOpenTargetChange}
+                        />
+
+                        <Stack horizontal verticalAlign="baseline">
+                            <Stack.Item grow>
+                                <Label>{intl.get("sources.hidden")}</Label>
+                            </Stack.Item>
+                            <Stack.Item>
+                                <DefaultButton
+                                    onClick={this.toggleBatchHidden}
+                                    text={intl.get("sources.batchToggleHidden")}
+                                />
+                            </Stack.Item>
+                        </Stack>
+
                         <Stack horizontal>
                             <Stack.Item>
                                 <DangerButton

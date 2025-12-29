@@ -150,6 +150,9 @@
         "deleteWarning": "The source and all saved articles will be removed.",
         "selected": "Selected source",
         "selectedMulti": "Selected multiple sources",
+        "batchApply": "Apply",
+        "selectFrequency": "Select fetch frequency",
+        "batchToggleHidden": "Toggle hidden",
         "hidden": "Hide in \"all articles\""
     },
     "groups": {
@@ -164,6 +167,7 @@
         "create": "Create group",
         "selectedGroup": "Selected group",
         "selectedSource": "Selected source",
+        "selectedMulti": "Selected multiple sources",
         "enterName": "Enter name",
         "editName": "Edit name",
         "deleteGroup": "Delete group",
