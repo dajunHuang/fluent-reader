@@ -51,7 +51,7 @@ export class RSSSource {
     constructor(url: string, name: string = null) {
         this.url = url
         this.name = name
-        this.openTarget = SourceOpenTarget.Local
+        this.openTarget = SourceOpenTarget.Webpage
         this.lastFetched = new Date()
         this.fetchFrequency = 0
         this.textDir = SourceTextDirection.LTR

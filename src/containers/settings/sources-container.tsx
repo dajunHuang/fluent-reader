@@ -66,6 +66,34 @@ const mapDispatchToProps = (dispatch: AppDispatch) => {
         deleteSource: (source: RSSSource) => dispatch(deleteSource(source)),
         deleteSources: (sources: RSSSource[]) =>
             dispatch(deleteSources(sources)),
+        updateSourcesOpenTarget: (
+            sources: RSSSource[],
+            target: SourceOpenTarget
+        ) => {
+            sources.forEach(source => {
+                dispatch(
+                    updateSource({ ...source, openTarget: target } as RSSSource)
+                )
+            })
+        },
+        updateSourcesFetchFrequency: (
+            sources: RSSSource[],
+            frequency: number
+        ) => {
+            sources.forEach(source => {
+                dispatch(
+                    updateSource({
+                        ...source,
+                        fetchFrequency: frequency,
+                    } as RSSSource)
+                )
+            })
+        },
+        toggleSourcesHidden: (sources: RSSSource[]) => {
+            sources.forEach(source => {
+                dispatch(toggleSourceHidden(source))
+            })
+        },
         importOPML: () => dispatch(importOPML()),
         exportOPML: () => dispatch(exportOPML()),
         toggleSourceHidden: (source: RSSSource) =>

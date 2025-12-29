@@ -39,6 +39,7 @@ type GroupsTabProps = {
 type GroupsTabState = {
     [formName: string]: any
     selectedGroup: SourceGroup
+    selectedGroups: SourceGroup[]
     selectedSources: RSSSource[]
     dropdownIndex: number
     manageGroup: boolean
@@ -60,6 +61,7 @@ class GroupsTab extends React.Component<GroupsTabProps, GroupsTabState> {
             editGroupName: "",
             newGroupName: "",
             selectedGroup: null,
+            selectedGroups: null,
             selectedSources: null,
             dropdownIndex: null,
             manageGroup: false,
@@ -69,12 +71,14 @@ class GroupsTab extends React.Component<GroupsTabProps, GroupsTabState> {
         this.groupSelection = new Selection({
             getKey: g => (g as SourceGroup).index,
             onSelectionChanged: () => {
-                let g = this.groupSelection.getSelectedCount()
-                    ? (this.groupSelection.getSelection()[0] as SourceGroup)
+                let count = this.groupSelection.getSelectedCount()
+                let groups = count
+                    ? (this.groupSelection.getSelection() as SourceGroup[])
                     : null
                 this.setState({
-                    selectedGroup: g,
-                    editGroupName: g && g.isMultiple ? g.name : "",
+                    selectedGroup: count === 1 ? groups[0] : null,
+                    selectedGroups: count > 1 ? groups : null,
+                    editGroupName: count === 1 && groups[0].isMultiple ? groups[0].name : "",
                 })
             },
         })
@@ -275,10 +279,21 @@ class GroupsTab extends React.Component<GroupsTabProps, GroupsTabState> {
     }
 
     addToGroup = () => {
-        this.props.addToGroup(
-            this.state.dropdownIndex,
-            this.state.selectedGroup.sids[0]
-        )
+        if (this.state.selectedGroups) {
+            // 批量添加多个订阅源到分组
+            const sids = this.state.selectedGroups
+                .filter(g => !g.isMultiple)
+                .map(g => g.sids[0])
+            sids.forEach(sid => {
+                this.props.addToGroup(this.state.dropdownIndex, sid)
+            })
+        } else if (this.state.selectedGroup) {
+            // 单个订阅源添加到分组
+            this.props.addToGroup(
+                this.state.dropdownIndex,
+                this.state.selectedGroup.sids[0]
+            )
+        }
     }
 
     removeFromGroup = () => {
@@ -412,10 +427,46 @@ class GroupsTab extends React.Component<GroupsTabProps, GroupsTabState> {
                         onItemInvoked={this.manageGroup}
                         dragDropEvents={this.groupDragDropEvents}
                         selection={this.groupSelection}
-                        selectionMode={SelectionMode.single}
+                        selectionMode={SelectionMode.multiple}
                     />
 
-                    {this.state.selectedGroup ? (
+                    {this.state.selectedGroups ? (
+                        this.state.selectedGroups.some(g => !g.isMultiple) ? (
+                            <>
+                                <Label>
+                                    {intl.get("groups.selectedMulti")}
+                                </Label>
+                                <Stack horizontal>
+                                    <Stack.Item grow>
+                                        <Dropdown
+                                            placeholder={intl.get(
+                                                "groups.chooseGroup"
+                                            )}
+                                            selectedKey={
+                                                this.state.dropdownIndex
+                                            }
+                                            options={this.dropdownOptions()}
+                                            onChange={this.dropdownChange}
+                                        />
+                                    </Stack.Item>
+                                    <Stack.Item>
+                                        <DefaultButton
+                                            disabled={
+                                                this.state.dropdownIndex ===
+                                                null
+                                            }
+                                            onClick={this.addToGroup}
+                                            text={intl.get("groups.addToGroup")}
+                                        />
+                                    </Stack.Item>
+                                </Stack>
+                            </>
+                        ) : (
+                            <span className="settings-hint">
+                                {intl.get("groups.groupHint")}
+                            </span>
+                        )
+                    ) : this.state.selectedGroup ? (
                         this.state.selectedGroup.isMultiple ? (
                             <>
                                 <Label>

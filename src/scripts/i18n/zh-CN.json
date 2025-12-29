@@ -148,7 +148,10 @@
         "deleteWarning": "这将移除订阅源与所有已保存的文章",
         "selected": "选中订阅源",
         "selectedMulti": "选中多个订阅源",
-        "hidden": "从“全部文章”中隐藏"
+        "batchApply": "应用",
+        "selectFrequency": "选择抓取频率",
+        "batchToggleHidden": "切换隐藏状态",
+        "hidden": "从\"全部文章\"中隐藏"
     },
     "groups": {
         "exist": "该分组已存在",
@@ -162,6 +165,7 @@
         "create": "新建分组",
         "selectedGroup": "选中分组",
         "selectedSource": "选中订阅源",
+        "selectedMulti": "选中多个订阅源",
         "enterName": "输入名称",
         "editName": "修改名称",
         "deleteGroup": "删除分组",
