@@ -24,6 +24,7 @@ export type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>
 
 const rssParser = new Parser({
     customFields: {
+        feed: ["icon", "logo"],
         item: [
             "thumb",
             "image",
@@ -95,8 +96,21 @@ export async function parseRSS(url: string) {
 
 export const domParser = new DOMParser()
 
-export async function fetchFavicon(url: string) {
+export async function fetchFavicon(url: string, feed?: any) {
     try {
+        // 优先使用 feed 中的 icon 或 logo
+        if (feed) {
+            const feedIcon = feed.icon || feed.logo
+            if (feedIcon && typeof feedIcon === 'string' && feedIcon.trim()) {
+                const iconUrl = feedIcon.trim()
+                // 验证 feed 中的图标是否有效
+                if (await validateFavicon(iconUrl)) {
+                    return iconUrl
+                }
+            }
+        }
+
+        // 如果 feed 中没有图标或图标无效，从网站首页获取
         url = url.split("/").slice(0, 3).join("/")
         let result = await fetch(url, { credentials: "omit" })
         if (result.ok) {
@@ -111,12 +125,25 @@ export async function fetchFavicon(url: string) {
                 ) {
                     let href = link.getAttribute("href")
                     let parsedUrl = Url.parse(url)
-                    if (href.startsWith("//")) return parsedUrl.protocol + href
-                    else if (href.startsWith("/")) return url + href
-                    else return href
+                    let iconUrl: string
+                    if (href.startsWith("//")) {
+                        iconUrl = parsedUrl.protocol + href
+                    } else if (href.startsWith("/")) {
+                        iconUrl = url + href
+                    } else if (href.startsWith("http://") || href.startsWith("https://")) {
+                        iconUrl = href
+                    } else {
+                        // 相对路径：拼接域名
+                        iconUrl = url + "/" + href
+                    }
+                    // 验证图标是否有效，如果有效则返回
+                    if (await validateFavicon(iconUrl)) {
+                        return iconUrl
+                    }
                 }
             }
         }
+        // 如果 HTML 中的图标都无效，尝试默认的 favicon.ico
         url = url + "/favicon.ico"
         if (await validateFavicon(url)) {
             return url
