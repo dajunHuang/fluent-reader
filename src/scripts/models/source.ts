@@ -392,7 +392,7 @@ export function addSource(
                 ).length
                 dispatch(addSourceSuccess(inserted, batch))
                 window.settings.saveGroups(getState().groups)
-                dispatch(updateFavicon([inserted.sid]))
+                dispatch(updateFavicon([inserted.sid], false, feed))
                 return inserted.sid
             } catch (e) {
                 dispatch(addSourceFailure(e, batch))
@@ -500,7 +500,8 @@ export function toggleSourceHidden(source: RSSSource): AppThunk<Promise<void>> {
 
 export function updateFavicon(
     sids?: number[],
-    force = false
+    force = false,
+    feed?: any
 ): AppThunk<Promise<void>> {
     return async (dispatch, getState) => {
         const initSources = getState().sources
@@ -513,7 +514,7 @@ export function updateFavicon(
         }
         const promises = sids.map(async sid => {
             const url = initSources[sid].url
-            let favicon = (await fetchFavicon(url)) || ""
+            let favicon = (await fetchFavicon(url, feed)) || ""
             const source = getState().sources[sid]
             if (
                 source &&
