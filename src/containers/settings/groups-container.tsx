@@ -6,6 +6,7 @@ import {
     createSourceGroup,
     updateSourceGroup,
     addSourceToGroup,
+    addSourcesToGroup,
     deleteSourceGroup,
     removeSourceFromGroup,
     reorderSourceGroups,
@@ -34,6 +35,8 @@ const mapDispatchToProps = (dispatch: AppDispatch) => ({
     updateGroup: (group: SourceGroup) => dispatch(updateSourceGroup(group)),
     addToGroup: (groupIndex: number, sid: number) =>
         dispatch(addSourceToGroup(groupIndex, sid)),
+    addSourcesToGroup: (groupIndex: number, sids: number[]) =>
+        dispatch(addSourcesToGroup(groupIndex, sids)),
     deleteGroup: (groupIndex: number) =>
         dispatch(deleteSourceGroup(groupIndex)),
     removeFromGroup: (groupIndex: number, sids: number[]) =>

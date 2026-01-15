@@ -30,6 +30,7 @@ type GroupsTabProps = {
     createGroup: (name: string) => void
     updateGroup: (group: SourceGroup) => void
     addToGroup: (groupIndex: number, sid: number) => void
+    addSourcesToGroup: (groupIndex: number, sids: number[]) => void
     deleteGroup: (groupIndex: number) => void
     removeFromGroup: (groupIndex: number, sids: number[]) => void
     reorderGroups: (groups: SourceGroup[]) => void
@@ -284,9 +285,7 @@ class GroupsTab extends React.Component<GroupsTabProps, GroupsTabState> {
             const sids = this.state.selectedGroups
                 .filter(g => !g.isMultiple)
                 .map(g => g.sids[0])
-            sids.forEach(sid => {
-                this.props.addToGroup(this.state.dropdownIndex, sid)
-            })
+            this.props.addSourcesToGroup(this.state.dropdownIndex, sids)
         } else if (this.state.selectedGroup) {
             // 单个订阅源添加到分组
             this.props.addToGroup(
