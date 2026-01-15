@@ -19,6 +19,7 @@ import {
 
 export const CREATE_SOURCE_GROUP = "CREATE_SOURCE_GROUP"
 export const ADD_SOURCE_TO_GROUP = "ADD_SOURCE_TO_GROUP"
+export const ADD_SOURCES_TO_GROUP = "ADD_SOURCES_TO_GROUP"
 export const REMOVE_SOURCE_FROM_GROUP = "REMOVE_SOURCE_FROM_GROUP"
 export const UPDATE_SOURCE_GROUP = "UPDATE_SOURCE_GROUP"
 export const REORDER_SOURCE_GROUPS = "REORDER_SOURCE_GROUPS"
@@ -34,6 +35,12 @@ interface AddSourceToGroupAction {
     type: typeof ADD_SOURCE_TO_GROUP
     gid: number
     sid: number
+}
+
+interface AddSourcesToGroupAction {
+    type: typeof ADD_SOURCES_TO_GROUP
+    gid: number
+    sids: number[]
 }
 
 interface RemoveSourceFromGroupAction {
@@ -67,6 +74,7 @@ interface ToggleGroupExpansionAction {
 export type SourceGroupActionTypes =
     | CreateSourceGroupAction
     | AddSourceToGroupAction
+    | AddSourcesToGroupAction
     | RemoveSourceFromGroupAction
     | UpdateSourceGroupAction
     | ReorderSourceGroupsAction
@@ -117,6 +125,24 @@ function addSourceToGroupDone(
 export function addSourceToGroup(gid: number, sid: number): AppThunk {
     return (dispatch, getState) => {
         dispatch(addSourceToGroupDone(gid, sid))
+        window.settings.saveGroups(getState().groups)
+    }
+}
+
+function addSourcesToGroupDone(
+    gid: number,
+    sids: number[]
+): SourceGroupActionTypes {
+    return {
+        type: ADD_SOURCES_TO_GROUP,
+        gid: gid,
+        sids: sids,
+    }
+}
+
+export function addSourcesToGroup(gid: number, sids: number[]): AppThunk {
+    return (dispatch, getState) => {
+        dispatch(addSourcesToGroupDone(gid, sids))
         window.settings.saveGroups(getState().groups)
     }
 }
@@ -439,6 +465,22 @@ export function groupReducer(
                             : g.sids.filter(sid => sid !== action.sid),
                 }))
                 .filter(g => g.isMultiple || g.sids.length > 0)
+        case ADD_SOURCES_TO_GROUP:
+            if (!state.some(g => g.isMultiple && g.gid === action.gid))
+                return state
+            const sidsToAdd = new Set(action.sids);
+            return state
+                .map(g => {
+                    if (g.gid === action.gid) {
+                        // For the target group, add the new sids, avoiding duplicates
+                        const newSids = new Set([...g.sids, ...action.sids]);
+                        return { ...g, sids: Array.from(newSids) };
+                    } else {
+                        // For other groups, filter out the sids that are being moved
+                        return { ...g, sids: g.sids.filter(sid => !sidsToAdd.has(sid)) };
+                    }
+                })
+                .filter(g => g.isMultiple || g.sids.length > 0);
         case REMOVE_SOURCE_FROM_GROUP:
             return state.flatMap(group =>
                 group.gid === action.gid
