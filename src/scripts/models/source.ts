@@ -278,7 +278,7 @@ let insertPromises = Promise.resolve()
 export function insertSource(source: RSSSource): AppThunk<Promise<RSSSource>> {
     return (_, getState) => {
         return new Promise((resolve, reject) => {
-            insertPromises = insertPromises.then(async () => {
+            insertPromises = insertPromises.catch(() => {}).then(async () => {
                 let sids = Object.values(getState().sources).map(s => s.sid)
                 source.sid = Math.max(...sids, -1) + 1
                 const row = db.sources.createRow(source)
