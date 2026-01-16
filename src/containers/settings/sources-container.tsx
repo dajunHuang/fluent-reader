@@ -89,9 +89,11 @@ const mapDispatchToProps = (dispatch: AppDispatch) => {
                 )
             })
         },
-        toggleSourcesHidden: (sources: RSSSource[]) => {
+        setSourcesHidden: (sources: RSSSource[], hidden: boolean) => {
             sources.forEach(source => {
-                dispatch(toggleSourceHidden(source))
+                if (source.hidden !== hidden) {
+                    dispatch(toggleSourceHidden(source))
+                }
             })
         },
         importOPML: () => dispatch(importOPML()),
