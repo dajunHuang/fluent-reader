@@ -7,7 +7,6 @@ import {
 } from "react"
 import { RSSItem } from "../../../scripts/models/item"
 import { SourceOpenTarget } from "../../../scripts/models/source"
-import { decodeFetchResponse } from "../../../scripts/utils"
 
 function initialView(itemId: number, openTarget: SourceOpenTarget) {
     return {
@@ -90,11 +89,8 @@ export function useArticleView(item: RSSItem, openTarget: SourceOpenTarget) {
 
         const loadContent = async () => {
             try {
-                const response = await fetch(item.link, {
-                    signal: controller.signal,
-                })
-                if (!response.ok) throw new Error()
-                const html = await decodeFetchResponse(response, true)
+                const html = await window.utils.fetchText(item.link, true)
+                if (!html) throw new Error()
                 if (!controller.signal.aborted)
                     setView(view => ({ ...view, fullContent: html }))
             } catch {

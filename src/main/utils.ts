@@ -1,4 +1,4 @@
-import { ipcMain, shell, dialog, app, session, clipboard } from "electron"
+import { ipcMain, shell, dialog, app, session, clipboard, net } from "electron"
 import { WindowManager } from "./window"
 import * as fs from "node:fs"
 import { ImageCallbackTypes, StoredRules, TouchBarTexts } from "../schema-types"
@@ -225,7 +225,7 @@ export function setUtilsListeners(manager: WindowManager) {
                             `new Promise(resolve => {
                         const dismiss = () => {
                             document.removeEventListener("mousedown", dismiss)
-                            document.removeEventListener("scroll", dismiss)                            
+                            document.removeEventListener("scroll", dismiss)
                             resolve()
                         }
                         document.addEventListener("mousedown", dismiss)
@@ -341,6 +341,14 @@ export function setUtilsListeners(manager: WindowManager) {
         return fontList.getFonts({
             disableQuoting: true,
         })
+    })
+
+    ipcMain.handle("fetchText", async (_, url, isHtml) => {
+        const response = await net.fetch(url)
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error('Server error (' + response.status + ') ' + response.statusText)
+        }
+        return await response.text()
     })
 }
 
