@@ -49,7 +49,7 @@ type SourcesTabProps = {
         sources: RSSSource[],
         frequency: number
     ) => void
-    toggleSourcesHidden: (sources: RSSSource[]) => void
+    setSourcesHidden: (sources: RSSSource[], hidden: boolean) => void
     importOPML: () => void
     exportOPML: () => void
     toggleSourceHidden: (source: RSSSource) => void
@@ -93,6 +93,7 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                 // 计算多选时的默认值
                 let batchOpenTarget: SourceOpenTarget | undefined = undefined
                 let batchFetchFrequency: number | undefined = undefined
+                let batchHidden: boolean | undefined = undefined
 
                 if (count > 1) {
                     // 检查所有选中订阅源的 openTarget 是否相同
@@ -106,6 +107,12 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                     if (sources.every(s => (s.fetchFrequency || 0) === firstFrequency)) {
                         batchFetchFrequency = firstFrequency
                     }
+
+                    // 检查所有选中订阅源的 hidden 状态是否相同
+                    const firstHidden = sources[0].hidden || false
+                    if (sources.every(s => (s.hidden || false) === firstHidden)) {
+                        batchHidden = firstHidden
+                    }
                 }
 
                 this.setState({
@@ -116,6 +123,7 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                     sourceEditOption: EditDropdownKeys.Name,
                     batchOpenTarget,
                     batchFetchFrequency,
+                    batchHidden,
                 })
             },
         })
@@ -276,8 +284,10 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
         this.props.updateSourcesFetchFrequency(this.state.selectedSources, frequency)
     }
 
-    toggleBatchHidden = () => {
-        this.props.toggleSourcesHidden(this.state.selectedSources)
+    onBatchHiddenChange = (_, checked: boolean) => {
+        this.setState({ batchHidden: checked })
+        // 立即应用到所有选中的订阅源
+        this.props.setSourcesHidden(this.state.selectedSources, checked)
     }
 
     render = () => (
@@ -540,9 +550,9 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                                 <Label>{intl.get("sources.hidden")}</Label>
                             </Stack.Item>
                             <Stack.Item>
-                                <DefaultButton
-                                    onClick={this.toggleBatchHidden}
-                                    text={intl.get("sources.batchToggleHidden")}
+                                <Toggle
+                                    checked={this.state.batchHidden === true}
+                                    onChange={this.onBatchHiddenChange}
                                 />
                             </Stack.Item>
                         </Stack>
