@@ -256,7 +256,7 @@ function outlineToSource(
 }
 
 export function importOPML(): AppThunk {
-    return async dispatch => {
+    return async (dispatch, getState) => {
         const filters = [
             { name: intl.get("sources.opmlFile"), extensions: ["xml", "opml"] },
         ]
@@ -282,10 +282,26 @@ export function importOPML(): AppThunk {
                 let sources: [ReturnType<typeof addSource>, number, string][] =
                     []
                 let errors: [string, any][] = []
+                let duplicates: string[] = []
+                const existingUrls = new Set(
+                    Object.values(getState().sources).map(s => s.url)
+                )
+                const importedUrls = new Set<string>()
+                
                 for (let el of doc[0].children) {
                     if (el.getAttribute("type") === "rss") {
                         let source = outlineToSource(el)
-                        if (source) sources.push([source[0], -1, source[1]])
+                        if (source) {
+                            const url = source[1]
+                            if (existingUrls.has(url)) {
+                                duplicates.push(url)
+                            } else if (importedUrls.has(url)) {
+                                duplicates.push(url)
+                            } else {
+                                importedUrls.add(url)
+                                sources.push([source[0], -1, url])
+                            }
+                        }
                     } else if (
                         el.hasAttribute("text") ||
                         el.hasAttribute("title")
@@ -295,11 +311,37 @@ export function importOPML(): AppThunk {
                         let gid = dispatch(createSourceGroup(groupName))
                         for (let child of el.children) {
                             let source = outlineToSource(child)
-                            if (source)
-                                sources.push([source[0], gid, source[1]])
+                            if (source) {
+                                const url = source[1]
+                                if (existingUrls.has(url)) {
+                                    duplicates.push(url)
+                                } else if (importedUrls.has(url)) {
+                                    duplicates.push(url)
+                                } else {
+                                    importedUrls.add(url)
+                                    sources.push([source[0], gid, url])
+                                }
+                            }
                         }
                     }
                 }
+                
+                // Show duplicates immediately
+                if (duplicates.length > 0) {
+                    window.utils.showErrorBox(
+                        intl.get("sources.errorImport", {
+                            count: duplicates.length,
+                        }),
+                        duplicates.join("\n"),
+                        intl.get("context.copy")
+                    )
+                }
+                
+                if (sources.length === 0) {
+                    dispatch(saveSettings())
+                    return
+                }
+                
                 dispatch(fetchItemsRequest(sources.length))
                 let promises = sources.map(([s, gid, url]) => {
                     return dispatch(s)
