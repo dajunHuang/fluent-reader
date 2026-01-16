@@ -231,6 +231,11 @@ export const Menu: React.FC = () => {
         [sources]
     )
 
+    const visibleSourceCount = useMemo(
+        () => Object.values(sources).filter(source => !source.hidden).length,
+        [sources]
+    )
+
     const treeRef = useRef<HTMLDivElement>(null)
     const previousDisplayRef = useRef(display)
     useEffect(() => {
@@ -355,7 +360,8 @@ export const Menu: React.FC = () => {
                                     verticalAlign="center"
                                     className={menuClasses.subsHeaderStack}>
                                     <span className={menuClasses.subsHeader}>
-                                        {intl.get("menu.subscriptions")}
+                                        {intl.get("menu.subscriptions")} (
+                                        {visibleSourceCount})
                                     </span>
                                     <ToggleButton
                                         aria-label={
