@@ -357,7 +357,8 @@ export const Menu: React.FC = () => {
                                     verticalAlign="center"
                                     className={menuClasses.subsHeaderStack}>
                                     <span className={menuClasses.subsHeader}>
-                                        {intl.get("menu.subscriptions")}
+                                        {intl.get("menu.subscriptions") +
+                                            ` (${Object.values(sources).filter(s => !s.hidden).length})` }
                                     </span>
                                     <ToggleButton
                                         aria-label={
