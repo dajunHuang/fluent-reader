@@ -24,7 +24,7 @@ export type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>
 
 const rssParser = new Parser({
     customFields: {
-        feed: ["icon", "logo"],
+        feed: ["icon", "logo", "image"],
         item: [
             "thumb",
             "image",
@@ -54,14 +54,22 @@ export const domParser = new DOMParser()
 
 export async function fetchFavicon(url: string, feed?: any) {
     try {
-        // 优先使用 feed 中的 icon 或 logo
+        // 优先使用 feed 中的 icon、logo 或 image.url
         if (feed) {
-            const feedIcon = feed.icon || feed.logo
+            // 检查 icon 和 logo 字段
+            let feedIcon = feed.icon || feed.logo
             if (feedIcon && typeof feedIcon === 'string' && feedIcon.trim()) {
                 const iconUrl = feedIcon.trim()
                 // 验证 feed 中的图标是否有效
                 if (await validateFavicon(iconUrl)) {
                     return iconUrl
+                }
+            }
+            // 检查 image.url 字段（例如 RSS 2.0 的 <image><url> 结构）
+            if (feed.image && typeof feed.image === 'object' && feed.image.url) {
+                const imageUrl = feed.image.url[0]?.trim()
+                if (imageUrl && await validateFavicon(imageUrl)) {
+                    return imageUrl
                 }
             }
         }
