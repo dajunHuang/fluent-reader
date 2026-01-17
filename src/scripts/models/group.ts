@@ -282,10 +282,27 @@ export function importOPML(): AppThunk {
                 let sources: [ReturnType<typeof addSource>, number, string][] =
                     []
                 let errors: [string, any][] = []
-                let duplicates: string[] = []
-                const existingUrls = new Set(
-                    Object.values(getState().sources).map(s => s.url)
-                )
+                let sourceGroupMoves: [number, number][] = [] // [sid, newGid] where -1 means ungrouped
+                
+                // Build a map of existing URLs to source objects for efficient lookup
+                const existingSourceMap = new Map<string, RSSSource>()
+                Object.values(getState().sources).forEach(s => {
+                    existingSourceMap.set(s.url, s)
+                })
+                
+                // Build a map of current group assignments: url -> groupIndex
+                // -1 means ungrouped (single source in non-multiple group)
+                const currentGroupMap = new Map<string, number>()
+                getState().groups.forEach((group, groupIndex) => {
+                    group.sids.forEach(sid => {
+                        const source = getState().sources[sid]
+                        if (source) {
+                            // Store groupIndex for multiple groups, -1 for single-source groups
+                            currentGroupMap.set(source.url, group.isMultiple ? groupIndex : -1)
+                        }
+                    })
+                })
+                
                 const importedUrls = new Set<string>()
                 
                 for (let el of doc[0].children) {
@@ -293,10 +310,14 @@ export function importOPML(): AppThunk {
                         let source = outlineToSource(el)
                         if (source) {
                             const url = source[1]
-                            if (existingUrls.has(url)) {
-                                duplicates.push(url)
+                            const existingSource = existingSourceMap.get(url)
+                            if (existingSource) {
+                                // OPML中未分组 (gid = -1)
+                                const currentGid = currentGroupMap.get(url)
+                                // 规则1: 本地未分组 + OPML未分组 → 跳过
+                                // 规则2: 本地在分组 + OPML未分组 → 跳过
+                                // 两种情况都是跳过，不做任何操作
                             } else if (importedUrls.has(url)) {
-                                duplicates.push(url)
                             } else {
                                 importedUrls.add(url)
                                 sources.push([source[0], -1, url])
@@ -313,10 +334,20 @@ export function importOPML(): AppThunk {
                             let source = outlineToSource(child)
                             if (source) {
                                 const url = source[1]
-                                if (existingUrls.has(url)) {
-                                    duplicates.push(url)
+                                const existingSource = existingSourceMap.get(url)
+                                if (existingSource) {
+                                    // OPML中在分组内
+                                    const currentGid = currentGroupMap.get(url)
+                                    if (currentGid === undefined || currentGid === -1) {
+                                        // 规则3: 本地未分组 + OPML在分组 → 移动到OPML分组
+                                        sourceGroupMoves.push([existingSource.sid, gid])
+                                    } else if (currentGid !== gid) {
+                                        // 规则4: 本地在分组A + OPML在分组B (A≠B) → 移动到OPML分组
+                                        sourceGroupMoves.push([existingSource.sid, gid])
+                                    } else {
+                                        // 规则5: 本地在分组A + OPML在分组A (相同) → 跳过
+                                    }
                                 } else if (importedUrls.has(url)) {
-                                    duplicates.push(url)
                                 } else {
                                     importedUrls.add(url)
                                     sources.push([source[0], gid, url])
@@ -326,15 +357,29 @@ export function importOPML(): AppThunk {
                     }
                 }
                 
-                // Show duplicates immediately
-                if (duplicates.length > 0) {
-                    window.utils.showErrorBox(
-                        intl.get("sources.errorImport", {
-                            count: duplicates.length,
-                        }),
-                        duplicates.join("\n"),
-                        intl.get("context.copy")
-                    )
+                // Move existing sources to their new groups
+                if (sourceGroupMoves.length > 0) {
+                    let updatedGroups = getState().groups.map(g => ({ ...g, sids: [...g.sids] }))
+                    
+                    for (let [sid, newGid] of sourceGroupMoves) {
+                        // Remove from current group
+                        for (let i = 0; i < updatedGroups.length; i++) {
+                            const group = updatedGroups[i]
+                            if (group.sids.includes(sid)) {
+                                group.sids = group.sids.filter(s => s !== sid)
+                                break
+                            }
+                        }
+                        
+                        // Add to target group
+                        updatedGroups[newGid].sids.push(sid)
+                    }
+                    
+                    // Remove empty non-multiple groups
+                    updatedGroups = updatedGroups.filter(g => g.isMultiple || g.sids.length > 0)
+                    
+                    // Dispatch once with all changes
+                    dispatch(reorderSourceGroups(updatedGroups))
                 }
                 
                 if (sources.length === 0) {
