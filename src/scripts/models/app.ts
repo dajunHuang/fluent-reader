@@ -290,7 +290,11 @@ export function exitSettings(): AppThunk<Promise<void>> {
         if (!getState().app.settings.saving) {
             if (getState().app.settings.changed) {
                 dispatch(saveSettings())
-                dispatch(selectAllArticles(true))
+                const state = getState()
+                // 如果当前菜单是"全部文章"，确保 page feedId 也对应更新
+                if (state.app.menuKey === ALL) {
+                    dispatch(selectAllArticles(true))
+                }
                 await dispatch(initFeeds(true))
                 dispatch(toggleSettings(false))
                 freeMemory()
@@ -472,6 +476,21 @@ export function appReducer(
         case REMOVE_SOURCE_FROM_GROUP:
         case REORDER_SOURCE_GROUPS:
         case DELETE_SOURCE_GROUP:
+            // 检查删除的源是否是当前选中的菜单项
+            if (
+                action.type === DELETE_SOURCE &&
+                state.menuKey === `s-${action.source.sid}`
+            ) {
+                return {
+                    ...state,
+                    menuKey: ALL,
+                    title: intl.get("allArticles"),
+                    settings: {
+                        ...state.settings,
+                        changed: true,
+                    },
+                }
+            }
             return {
                 ...state,
                 settings: {
