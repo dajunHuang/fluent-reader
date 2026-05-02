@@ -69,7 +69,7 @@ ipcMain.handle("set-proxy", (_, address = null) => {
 
 const VIEW_STORE_KEY = "view"
 ipcMain.on("get-view", event => {
-    event.returnValue = store.get(VIEW_STORE_KEY, ViewType.Cards)
+    event.returnValue = store.get(VIEW_STORE_KEY, ViewType.List)
 })
 ipcMain.handle("set-view", (_, viewType: ViewType) => {
     store.set(VIEW_STORE_KEY, viewType)
