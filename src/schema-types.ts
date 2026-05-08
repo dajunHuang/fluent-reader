@@ -67,6 +67,7 @@ export const enum SyncService {
     Inoreader,
     Miniflux,
     Nextcloud,
+    WebDAV,
 }
 export interface ServiceConfigs {
     type: SyncService
