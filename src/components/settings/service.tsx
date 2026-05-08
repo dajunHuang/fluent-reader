@@ -8,6 +8,7 @@ import GReaderConfigsTab from "./services/greader"
 import InoreaderConfigsTab from "./services/inoreader"
 import MinifluxConfigsTab from "./services/miniflux"
 import NextcloudConfigsTab from "./services/nextcloud"
+import WebDAVConfigsTab from "./services/webdav"
 
 type ServiceTabProps = {
     configs: ServiceConfigs
@@ -45,6 +46,7 @@ export class ServiceTab extends React.Component<
         { key: SyncService.Inoreader, text: "Inoreader" },
         { key: SyncService.Miniflux, text: "Miniflux" },
         { key: SyncService.Nextcloud, text: "Nextcloud News API" },
+        { key: SyncService.WebDAV, text: "WebDAV" },
         { key: -1, text: intl.get("service.suggest") },
     ]
 
@@ -102,6 +104,13 @@ export class ServiceTab extends React.Component<
             case SyncService.Nextcloud:
                 return (
                     <NextcloudConfigsTab
+                        {...this.props}
+                        exit={this.exitConfigsTab}
+                    />
+                )
+            case SyncService.WebDAV:
+                return (
+                    <WebDAVConfigsTab
                         {...this.props}
                         exit={this.exitConfigsTab}
                     />

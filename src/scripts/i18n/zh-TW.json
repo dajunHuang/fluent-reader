@@ -208,7 +208,12 @@
         "failure": "連線到服務時出錯",
         "failureHint": "請檢查服務配置或網路連線",
         "fetchUnlimited": "無限制（不建議）",
-        "exportToLite": "匯出至 Fluent Reader Lite"
+        "exportToLite": "匯出至 Fluent Reader Lite",
+        "opmlPath": "OPML 檔案路徑",
+        "enabled": "啟用",
+        "testConnection": "檢測連線",
+        "checking": "正在檢測...",
+        "connectionAvailable": "WebDAV 連線可用。"
     },
     "app": {
         "cleanup": "清理",

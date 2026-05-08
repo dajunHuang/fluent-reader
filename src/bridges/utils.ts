@@ -175,8 +175,16 @@ const utilsBridge = {
         return ipcRenderer.invoke("init-font-list")
     },
 
-    fetchText: (url: string, isHtml: boolean = false) => {
-        return ipcRenderer.invoke("fetchText", url, isHtml)
+    fetchText: (
+        url: string,
+        isHtml: boolean = false,
+        options?: {
+            method?: string
+            headers?: Record<string, string>
+            cache?: RequestCache
+        }
+    ) => {
+        return ipcRenderer.invoke("fetchText", url, isHtml, options)
     }
 }
 
