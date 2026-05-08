@@ -212,7 +212,12 @@
         "failure": "连接到服务时出错",
         "failureHint": "请检查服务配置或网络连接",
         "fetchUnlimited": "无限制（不建议）",
-        "exportToLite": "导出至 Fluent Reader Lite"
+        "exportToLite": "导出至 Fluent Reader Lite",
+        "opmlPath": "OPML 文件路径",
+        "enabled": "启用",
+        "testConnection": "检测连接",
+        "checking": "正在检测...",
+        "connectionAvailable": "WebDAV 连接可用。"
     },
     "app": {
         "cleanup": "清理",

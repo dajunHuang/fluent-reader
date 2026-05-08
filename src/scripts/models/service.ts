@@ -20,6 +20,7 @@ import { feedbinServiceHooks } from "./services/feedbin"
 import { gReaderServiceHooks } from "./services/greader"
 import { minifluxServiceHooks } from "./services/miniflux"
 import { nextcloudServiceHooks } from "./services/nextcloud"
+import { webdavServiceHooks } from "./services/webdav"
 
 export interface ServiceHooks {
     authenticate?: (configs: ServiceConfigs) => Promise<boolean>
@@ -27,6 +28,7 @@ export interface ServiceHooks {
     updateSources?: () => AppThunk<Promise<[RSSSource[], Map<string, string>]>>
     fetchItems?: () => AppThunk<Promise<[RSSItem[], ServiceConfigs]>>
     syncItems?: () => AppThunk<Promise<[Set<string>, Set<string>]>>
+    syncSources?: () => AppThunk<Promise<void>>
     markRead?: (item: RSSItem) => AppThunk
     markUnread?: (item: RSSItem) => AppThunk
     markAllRead?: (
@@ -51,6 +53,8 @@ export function getServiceHooksFromType(type: SyncService): ServiceHooks {
             return minifluxServiceHooks
         case SyncService.Nextcloud:
             return nextcloudServiceHooks
+        case SyncService.WebDAV:
+            return webdavServiceHooks
         default:
             return {}
     }
@@ -65,16 +69,23 @@ export function getServiceHooks(): AppThunk<ServiceHooks> {
 export function syncWithService(background = false): AppThunk<Promise<void>> {
     return async (dispatch, getState) => {
         const hooks = dispatch(getServiceHooks())
-        if (hooks.updateSources && hooks.fetchItems && hooks.syncItems) {
+        if (
+            hooks.syncSources ||
+            (hooks.updateSources && hooks.fetchItems && hooks.syncItems)
+        ) {
             try {
                 dispatch({
                     type: SYNC_SERVICE,
                     status: ActionStatus.Request,
                 })
                 if (hooks.reauthenticate) await dispatch(reauthenticate(hooks))
-                await dispatch(updateSources(hooks.updateSources))
-                await dispatch(syncItems(hooks.syncItems))
-                await dispatch(fetchItems(hooks.fetchItems, background))
+                if (hooks.syncSources) {
+                    await dispatch(hooks.syncSources())
+                } else {
+                    await dispatch(updateSources(hooks.updateSources))
+                    await dispatch(syncItems(hooks.syncItems))
+                    await dispatch(fetchItems(hooks.fetchItems, background))
+                }
                 dispatch({
                     type: SYNC_SERVICE,
                     status: ActionStatus.Success,

@@ -309,8 +309,8 @@ export function setUtilsListeners(manager: WindowManager) {
         })
     })
 
-    ipcMain.handle("fetchText", async (_, url, isHtml) => {
-        const response = await net.fetch(url)
+    ipcMain.handle("fetchText", async (_, url, isHtml, options = {}) => {
+        const response = await net.fetch(url, options)
         if (response.status < 200 || response.status >= 300) {
             throw new Error('Server error (' + response.status + ') ' + response.statusText)
         }
