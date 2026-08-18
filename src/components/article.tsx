@@ -330,7 +330,7 @@ class Article extends React.Component<ArticleProps, ArticleState> {
         this.setState({ fullContent: "", loaded: false, error: false })
         const link = this.props.item.link
         try {
-		    const html = await window.utils.fetchText(link, true)
+            const html = await window.utils.fetchText(link, true)
             if (!html) throw new Error()
             if (link === this.props.item.link) {
                 this.setState({ fullContent: html })

@@ -58,7 +58,7 @@ export async function fetchFavicon(url: string, feed?: any) {
         if (feed) {
             // 检查 icon 和 logo 字段
             let feedIcon = feed.icon || feed.logo
-            if (feedIcon && typeof feedIcon === 'string' && feedIcon.trim()) {
+            if (feedIcon && typeof feedIcon === "string" && feedIcon.trim()) {
                 const iconUrl = feedIcon.trim()
                 // 验证 feed 中的图标是否有效
                 if (await validateFavicon(iconUrl)) {
@@ -66,9 +66,13 @@ export async function fetchFavicon(url: string, feed?: any) {
                 }
             }
             // 检查 image.url 字段（例如 RSS 2.0 的 <image><url> 结构）
-            if (feed.image && typeof feed.image === 'object' && feed.image.url) {
+            if (
+                feed.image &&
+                typeof feed.image === "object" &&
+                feed.image.url
+            ) {
                 const imageUrl = feed.image.url[0]?.trim()
-                if (imageUrl && await validateFavicon(imageUrl)) {
+                if (imageUrl && (await validateFavicon(imageUrl))) {
                     return imageUrl
                 }
             }
@@ -76,8 +80,7 @@ export async function fetchFavicon(url: string, feed?: any) {
 
         // 如果 feed 中没有图标或图标无效，从网站首页获取
         url = url.split("/").slice(0, 3).join("/")
-        let result = await fetch(url, { credentials: "omit" })
-		const html = await window.utils.fetchText(url)
+        const html = await window.utils.fetchText(url)
         let dom = domParser.parseFromString(html, "text/html")
         let links = dom.getElementsByTagName("link")
         for (let link of links) {

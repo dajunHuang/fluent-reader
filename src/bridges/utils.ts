@@ -185,7 +185,7 @@ const utilsBridge = {
         }
     ) => {
         return ipcRenderer.invoke("fetchText", url, isHtml, options)
-    }
+    },
 }
 
 declare global {

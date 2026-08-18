@@ -79,7 +79,10 @@ class GroupsTab extends React.Component<GroupsTabProps, GroupsTabState> {
                 this.setState({
                     selectedGroup: count === 1 ? groups[0] : null,
                     selectedGroups: count > 1 ? groups : null,
-                    editGroupName: count === 1 && groups[0].isMultiple ? groups[0].name : "",
+                    editGroupName:
+                        count === 1 && groups[0].isMultiple
+                            ? groups[0].name
+                            : "",
                 })
             },
         })

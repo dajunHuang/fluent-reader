@@ -103,13 +103,19 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
 
                     // 检查所有选中订阅源的 fetchFrequency 是否相同
                     const firstFrequency = sources[0].fetchFrequency || 0
-                    if (sources.every(s => (s.fetchFrequency || 0) === firstFrequency)) {
+                    if (
+                        sources.every(
+                            s => (s.fetchFrequency || 0) === firstFrequency
+                        )
+                    ) {
                         batchFetchFrequency = firstFrequency
                     }
 
                     // 检查所有选中订阅源的 hidden 状态是否相同
                     const firstHidden = sources[0].hidden || false
-                    if (sources.every(s => (s.hidden || false) === firstHidden)) {
+                    if (
+                        sources.every(s => (s.hidden || false) === firstHidden)
+                    ) {
                         batchHidden = firstHidden
                     }
                 }
@@ -253,18 +259,27 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
         })
     }
 
-    onBatchOpenTargetChange = (_, option: IChoiceGroupOption) => {
-        let newTarget = parseInt(option.key) as SourceOpenTarget
+    onBatchOpenTargetChange = (
+        _: React.ChangeEvent<HTMLInputElement>,
+        data: { value: string }
+    ) => {
+        let newTarget = parseInt(data.value) as SourceOpenTarget
         this.setState({ batchOpenTarget: newTarget })
         // 立即应用
-        this.props.updateSourcesOpenTarget(this.state.selectedSources, newTarget)
+        this.props.updateSourcesOpenTarget(
+            this.state.selectedSources,
+            newTarget
+        )
     }
 
     onBatchFetchFrequencyChange = (_, option: IDropdownOption) => {
         let frequency = parseInt(option.key as string)
         this.setState({ batchFetchFrequency: frequency })
         // 立即应用
-        this.props.updateSourcesFetchFrequency(this.state.selectedSources, frequency)
+        this.props.updateSourcesFetchFrequency(
+            this.state.selectedSources,
+            frequency
+        )
     }
 
     onBatchHiddenChange = (_, checked: boolean) => {
@@ -530,16 +545,31 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                             style={{ width: 200 }}
                         />
 
-                        <ChoiceGroup
-                            label={intl.get("sources.openTarget")}
-                            options={this.sourceOpenTargetChoices()}
-                            selectedKey={
+                        <Label>{intl.get("sources.openTarget")}</Label>
+                        <RadioGroup
+                            value={
                                 this.state.batchOpenTarget !== undefined
                                     ? String(this.state.batchOpenTarget)
                                     : undefined
                             }
-                            onChange={this.onBatchOpenTargetChange}
-                        />
+                            onChange={this.onBatchOpenTargetChange}>
+                            <Radio
+                                value={String(SourceOpenTarget.Local)}
+                                label={intl.get("sources.rssText")}
+                            />
+                            <Radio
+                                value={String(SourceOpenTarget.FullContent)}
+                                label={intl.get("article.loadFull")}
+                            />
+                            <Radio
+                                value={String(SourceOpenTarget.Webpage)}
+                                label={intl.get("sources.loadWebpage")}
+                            />
+                            <Radio
+                                value={String(SourceOpenTarget.External)}
+                                label={intl.get("openExternal")}
+                            />
+                        </RadioGroup>
 
                         <Stack horizontal verticalAlign="baseline">
                             <Stack.Item grow>

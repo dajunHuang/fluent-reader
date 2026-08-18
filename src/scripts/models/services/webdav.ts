@@ -45,7 +45,9 @@ export function getWebDAVFileUrl(configs: WebDAVConfigs) {
         ).toString()
     } catch {
         if (/^https?:\/\//i.test(path)) return path
-        return trimSlashEnd(configs.endpoint.trim()) + "/" + trimSlashStart(path)
+        return (
+            trimSlashEnd(configs.endpoint.trim()) + "/" + trimSlashStart(path)
+        )
     }
 }
 
@@ -126,7 +128,9 @@ function existingGroupMap(groups: SourceGroup[]) {
     return map
 }
 
-function syncRemoteSources(remoteSources: RemoteSource[]): AppThunk<Promise<void>> {
+function syncRemoteSources(
+    remoteSources: RemoteSource[]
+): AppThunk<Promise<void>> {
     return async (dispatch, getState) => {
         const state = getState()
         const existingByUrl = new Map<string, RSSSource>()
