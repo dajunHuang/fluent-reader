@@ -21,6 +21,7 @@ import {
     SourceGroupActionTypes,
     UPDATE_SOURCE_GROUP,
     ADD_SOURCE_TO_GROUP,
+    ADD_SOURCES_TO_GROUP,
     DELETE_SOURCE_GROUP,
     REMOVE_SOURCE_FROM_GROUP,
     REORDER_SOURCE_GROUPS,
@@ -30,6 +31,7 @@ import {
     SELECT_PAGE,
     PageType,
     selectAllArticles,
+    selectSources,
     showItemFromId,
 } from "./page"
 import { getCurrentLocale } from "../settings"
@@ -291,13 +293,27 @@ export function exitSettings(): AppThunk<Promise<void>> {
             if (getState().app.settings.changed) {
                 dispatch(saveSettings())
                 const state = getState()
-                // 如果当前菜单是"全部文章"，确保 page feedId 也对应更新
-                if (state.app.menuKey === ALL) {
+                const key = state.app.menuKey
+                const source = key.startsWith("s-")
+                    ? state.sources[Number(key.slice(2))]
+                    : null
+                const group = key.startsWith("g-")
+                    ? state.groups.find(
+                          group => group.gid === Number(key.slice(2))
+                      )
+                    : null
+                if (source) {
+                    dispatch(
+                        selectSources([source.sid], key, source.name, true)
+                    )
+                } else if (group) {
+                    dispatch(selectSources(group.sids, key, group.name, true))
+                } else {
                     dispatch(selectAllArticles(true))
                 }
                 await dispatch(initFeeds(true))
                 dispatch(toggleSettings(false))
-                freeMemory()
+                dispatch(freeMemory())
             } else {
                 dispatch(toggleSettings(false))
             }
@@ -480,6 +496,7 @@ export function appReducer(
         case DELETE_SOURCE:
         case UPDATE_SOURCE_GROUP:
         case ADD_SOURCE_TO_GROUP:
+        case ADD_SOURCES_TO_GROUP:
         case REMOVE_SOURCE_FROM_GROUP:
         case REORDER_SOURCE_GROUPS:
         case DELETE_SOURCE_GROUP:

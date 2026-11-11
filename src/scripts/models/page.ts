@@ -93,10 +93,11 @@ export function selectAllArticles(init = false): AppThunk {
 export function selectSources(
     sids: number[],
     menuKey: string,
-    title: string
+    title: string,
+    force = false
 ): AppThunk {
     return (dispatch, getState) => {
-        if (getState().app.menuKey !== menuKey) {
+        if (force || getState().app.menuKey !== menuKey) {
             dispatch({
                 type: SELECT_PAGE,
                 pageType: PageType.Sources,

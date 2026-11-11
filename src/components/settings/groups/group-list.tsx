@@ -22,9 +22,9 @@ const useStyles = makeStyles({
 type GroupListProps = {
     groups: SourceGroup[]
     sources: SourceState
-    selectedGid: number
+    selectedGids: Set<number>
     disabled: boolean
-    onSelect: (gid: number) => void
+    onSelect: (gids: Set<number>) => void
     onEdit: (gid: number) => void
     onReorder: (groups: SourceGroup[]) => void
 }
@@ -32,7 +32,7 @@ type GroupListProps = {
 export function GroupList({
     groups,
     sources,
-    selectedGid,
+    selectedGids,
     disabled,
     onSelect,
     onEdit,
@@ -76,7 +76,7 @@ export function GroupList({
         const next = groups.filter(group => group.gid !== gid)
         next.splice(index, 0, group)
         onReorder(next)
-        onSelect(null)
+        onSelect(new Set())
     }
 
     return (
@@ -92,14 +92,13 @@ export function GroupList({
                 items={groups}
                 columns={columns}
                 getRowId={group => group.gid}
-                selectionMode="single"
-                selectedItems={
-                    new Set(selectedGid === null ? [] : [selectedGid])
-                }
+                selectionMode="multiselect"
+                selectedItems={selectedGids}
                 onSelectionChange={(_, data) => {
-                    if (disabled) return
-                    const gid = data.selectedItems.values().next().value
-                    onSelect(gid === undefined ? null : Number(gid))
+                    if (!disabled)
+                        onSelect(
+                            new Set(Array.from(data.selectedItems, Number))
+                        )
                 }}>
                 <DataGridHeader>
                     <DataGridRow>
@@ -122,7 +121,7 @@ export function GroupList({
                             className={classes.draggable}
                             draggable={!disabled}
                             selectionCell={{
-                                radioIndicator: {
+                                checkboxIndicator: {
                                     "aria-label": name(item),
                                 },
                             }}

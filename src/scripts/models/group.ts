@@ -282,7 +282,7 @@ function outlineToSource(
     let url = outline.getAttribute("xmlUrl")
     let name = outline.getAttribute("text") || outline.getAttribute("title")
     if (url) {
-        return [addSource(url.trim(), name, true), url]
+        return [addSource(url.trim(), name, true), url.trim()]
     } else {
         return null
     }
@@ -293,7 +293,7 @@ export function importOPML(): AppThunk {
         const filters = [
             { name: intl.get("sources.opmlFile"), extensions: ["xml", "opml"] },
         ]
-        window.utils.showOpenDialog(filters).then(data => {
+        await window.utils.showOpenDialog(filters).then(async data => {
             if (data) {
                 dispatch(saveSettings())
                 let doc = domParser
@@ -316,28 +316,30 @@ export function importOPML(): AppThunk {
                     []
                 let errors: [string, any][] = []
                 let sourceGroupMoves: [number, number][] = [] // [sid, newGid] where -1 means ungrouped
-                
+
                 // Build a map of existing URLs to source objects for efficient lookup
                 const existingSourceMap = new Map<string, RSSSource>()
                 Object.values(getState().sources).forEach(s => {
                     existingSourceMap.set(s.url, s)
                 })
-                
-                // Build a map of current group assignments: url -> groupIndex
+
+                // Use persistent group IDs, not positions in the display order.
                 // -1 means ungrouped (single source in non-multiple group)
                 const currentGroupMap = new Map<string, number>()
-                getState().groups.forEach((group, groupIndex) => {
+                getState().groups.forEach(group => {
                     group.sids.forEach(sid => {
                         const source = getState().sources[sid]
                         if (source) {
-                            // Store groupIndex for multiple groups, -1 for single-source groups
-                            currentGroupMap.set(source.url, group.isMultiple ? groupIndex : -1)
+                            currentGroupMap.set(
+                                source.url,
+                                group.isMultiple ? group.gid : -1
+                            )
                         }
                     })
                 })
-                
+
                 const importedUrls = new Set<string>()
-                
+
                 for (let el of doc[0].children) {
                     if (el.getAttribute("type") === "rss") {
                         let source = outlineToSource(el)
@@ -367,16 +369,26 @@ export function importOPML(): AppThunk {
                             let source = outlineToSource(child)
                             if (source) {
                                 const url = source[1]
-                                const existingSource = existingSourceMap.get(url)
+                                const existingSource =
+                                    existingSourceMap.get(url)
                                 if (existingSource) {
                                     // OPML中在分组内
                                     const currentGid = currentGroupMap.get(url)
-                                    if (currentGid === undefined || currentGid === -1) {
+                                    if (
+                                        currentGid === undefined ||
+                                        currentGid === -1
+                                    ) {
                                         // 规则3: 本地未分组 + OPML在分组 → 移动到OPML分组
-                                        sourceGroupMoves.push([existingSource.sid, gid])
+                                        sourceGroupMoves.push([
+                                            existingSource.sid,
+                                            gid,
+                                        ])
                                     } else if (currentGid !== gid) {
                                         // 规则4: 本地在分组A + OPML在分组B (A≠B) → 移动到OPML分组
-                                        sourceGroupMoves.push([existingSource.sid, gid])
+                                        sourceGroupMoves.push([
+                                            existingSource.sid,
+                                            gid,
+                                        ])
                                     } else {
                                         // 规则5: 本地在分组A + OPML在分组A (相同) → 跳过
                                     }
@@ -389,11 +401,14 @@ export function importOPML(): AppThunk {
                         }
                     }
                 }
-                
+
                 // Move existing sources to their new groups
                 if (sourceGroupMoves.length > 0) {
-                    let updatedGroups = getState().groups.map(g => ({ ...g, sids: [...g.sids] }))
-                    
+                    let updatedGroups = getState().groups.map(g => ({
+                        ...g,
+                        sids: [...g.sids],
+                    }))
+
                     for (let [sid, newGid] of sourceGroupMoves) {
                         // Remove from current group
                         for (let i = 0; i < updatedGroups.length; i++) {
@@ -403,23 +418,29 @@ export function importOPML(): AppThunk {
                                 break
                             }
                         }
-                        
+
                         // Add to target group
-                        updatedGroups[newGid].sids.push(sid)
+                        const target = updatedGroups.find(
+                            group => group.gid === newGid
+                        )
+                        if (target && !target.sids.includes(sid))
+                            target.sids.push(sid)
                     }
-                    
+
                     // Remove empty non-multiple groups
-                    updatedGroups = updatedGroups.filter(g => g.isMultiple || g.sids.length > 0)
-                    
+                    updatedGroups = updatedGroups.filter(
+                        g => g.isMultiple || g.sids.length > 0
+                    )
+
                     // Dispatch once with all changes
                     dispatch(reorderSourceGroups(updatedGroups))
                 }
-                
+
                 if (sources.length === 0) {
                     dispatch(saveSettings())
                     return
                 }
-                
+
                 dispatch(fetchItemsRequest(sources.length))
                 let promises = sources.map(([s, gid, url]) => {
                     return dispatch(s)
@@ -434,7 +455,7 @@ export function importOPML(): AppThunk {
                             dispatch(fetchItemsIntermediate())
                         })
                 })
-                Promise.allSettled(promises).then(() => {
+                await Promise.allSettled(promises).then(() => {
                     dispatch(fetchItemsSuccess([], {}))
                     dispatch(saveSettings())
                     if (errors.length > 0) {
@@ -555,19 +576,22 @@ export function groupReducer(
         case ADD_SOURCES_TO_GROUP:
             if (!state.some(g => g.isMultiple && g.gid === action.gid))
                 return state
-            const sidsToAdd = new Set(action.sids);
+            const sidsToAdd = new Set(action.sids)
             return state
                 .map(g => {
                     if (g.gid === action.gid) {
                         // For the target group, add the new sids, avoiding duplicates
-                        const newSids = new Set([...g.sids, ...action.sids]);
-                        return { ...g, sids: Array.from(newSids) };
+                        const newSids = new Set([...g.sids, ...action.sids])
+                        return { ...g, sids: Array.from(newSids) }
                     } else {
                         // For other groups, filter out the sids that are being moved
-                        return { ...g, sids: g.sids.filter(sid => !sidsToAdd.has(sid)) };
+                        return {
+                            ...g,
+                            sids: g.sids.filter(sid => !sidsToAdd.has(sid)),
+                        }
                     }
                 })
-                .filter(g => g.isMultiple || g.sids.length > 0);
+                .filter(g => g.isMultiple || g.sids.length > 0)
         case REMOVE_SOURCE_FROM_GROUP:
             return state.flatMap(group =>
                 group.gid === action.gid

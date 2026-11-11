@@ -201,7 +201,9 @@ class WebDAVConfigsTab extends React.Component<
                     <Stack.Item grow>
                         <TextField
                             onGetErrorMessage={v =>
-                                v.trim().length > 0 ? "" : intl.get("emptyField")
+                                v.trim().length > 0
+                                    ? ""
+                                    : intl.get("emptyField")
                             }
                             validateOnLoad={false}
                             name="opmlPath"

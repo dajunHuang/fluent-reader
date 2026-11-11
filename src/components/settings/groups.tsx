@@ -11,7 +11,7 @@ import {
 } from "@fluentui/react-components"
 import { SyncService } from "../../schema-types"
 import {
-    addSourceToGroup,
+    addSourcesToGroup,
     createSourceGroup,
     deleteSourceGroup,
     removeSourceFromGroup,
@@ -42,20 +42,22 @@ const GroupsTab: React.FC = () => {
     const disabled = useAppSelector(
         state => state.app.settings.saving || state.app.syncing
     )
-    const [selectedGid, setSelectedGid] = useState<number>(null)
+    const [selectedGids, setSelectedGids] = useState(new Set<number>())
     const [managing, setManaging] = useState(false)
-    const selectedGroup = groups.find(group => group.gid === selectedGid)
+    const selectedGroups = groups.filter(group => selectedGids.has(group.gid))
+    const selectedGroup = selectedGroups.length === 1 ? selectedGroups[0] : null
+    const selectedSources = selectedGroups.filter(group => !group.isMultiple)
 
     useEffect(() => {
-        if (selectedGid !== null && !selectedGroup) {
-            setSelectedGid(null)
+        if (selectedGroups.length !== selectedGids.size) {
+            setSelectedGids(new Set(selectedGroups.map(group => group.gid)))
             setManaging(false)
         }
-    }, [selectedGid, selectedGroup])
+    }, [groups, selectedGids])
 
     const editGroup = (gid: number) => {
         if (disabled) return
-        setSelectedGid(gid)
+        setSelectedGids(new Set([gid]))
         setManaging(true)
     }
 
@@ -73,7 +75,7 @@ const GroupsTab: React.FC = () => {
                     }
                     onRemove={sids => {
                         dispatch(removeSourceFromGroup(selectedGroup.gid, sids))
-                        setSelectedGid(null)
+                        setSelectedGids(new Set())
                         setManaging(false)
                     }}
                 />
@@ -101,15 +103,15 @@ const GroupsTab: React.FC = () => {
                         disabled={disabled}
                         onCreate={name => {
                             dispatch(createSourceGroup(name))
-                            setSelectedGid(null)
+                            setSelectedGids(new Set())
                         }}
                     />
                     <GroupList
                         groups={groups}
                         sources={sources}
-                        selectedGid={selectedGid}
+                        selectedGids={selectedGids}
                         disabled={disabled}
-                        onSelect={setSelectedGid}
+                        onSelect={setSelectedGids}
                         onEdit={editGroup}
                         onReorder={next => dispatch(reorderSourceGroups(next))}
                     />
@@ -141,14 +143,37 @@ const GroupsTab: React.FC = () => {
                                 disabled={disabled}
                                 onAdd={gid =>
                                     dispatch(
-                                        addSourceToGroup(
+                                        addSourcesToGroup(
                                             gid,
-                                            selectedGroup.sids[0]
+                                            selectedGroup.sids
                                         )
                                     )
                                 }
                             />
                         )
+                    ) : selectedSources.length > 1 ? (
+                        <>
+                            <Text>
+                                {intl.get("groups.selectedMulti", {
+                                    count: selectedSources.length,
+                                })}
+                            </Text>
+                            <SourceGroupPicker
+                                groups={groups}
+                                disabled={disabled}
+                                onAdd={gid => {
+                                    dispatch(
+                                        addSourcesToGroup(
+                                            gid,
+                                            selectedSources.flatMap(
+                                                group => group.sids
+                                            )
+                                        )
+                                    )
+                                    setSelectedGids(new Set())
+                                }}
+                            />
+                        </>
                     ) : (
                         <Text className={shared.hint}>
                             {intl.get("groups.groupHint")}

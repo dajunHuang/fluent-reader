@@ -344,11 +344,35 @@ export function setUtilsListeners(manager: WindowManager) {
     })
 
     ipcMain.handle("fetchText", async (_, url, isHtml, options = {}) => {
-        const response = await net.fetch(url, options)
-        if (response.status < 200 || response.status >= 300) {
-            throw new Error('Server error (' + response.status + ') ' + response.statusText)
+        if (!/^https?:\/\//i.test(url))
+            throw new Error("Unsupported URL protocol")
+        const response = await net.fetch(url, {
+            credentials: "omit",
+            ...options,
+        })
+        if (!response.ok) {
+            throw new Error(
+                "Server error (" + response.status + ") " + response.statusText
+            )
         }
-        return await response.text()
+        // Keep upstream's non-UTF-8 feed/article support when fetching via IPC.
+        const buffer = await response.arrayBuffer()
+        const charsetPattern = /charset\s*=\s*["']?([^\s;"'/>]+)/i
+        const headerCharset = charsetPattern.exec(
+            response.headers.get("content-type") || ""
+        )?.[1]
+        let content = new TextDecoder(headerCharset).decode(buffer)
+        if (!headerCharset) {
+            const charset = isHtml
+                ? Array.from(content.matchAll(/<meta\b[^>]*>/gi))
+                      .map(match => charsetPattern.exec(match[0])?.[1])
+                      .find(Boolean)
+                : /^\s*<\?xml\b[^>]*encoding\s*=\s*["']([^"']+)["']/i.exec(
+                      content
+                  )?.[1]
+            if (charset) content = new TextDecoder(charset).decode(buffer)
+        }
+        return content
     })
 }
 
